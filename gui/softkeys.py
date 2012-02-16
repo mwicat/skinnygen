@@ -4,8 +4,6 @@ Created on Jun 17, 2011
 @author: lebleu1
 '''
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
 
 SKINNY_LBL_EMPTY = 0
 SKINNY_LBL_REDIAL = 1
@@ -32,43 +30,5 @@ SOFT_KEYS_LABELS_TO_EVENT={
                            'EndCall' : SKINNY_LBL_ENDCALL,
                            'Answer' : SKINNY_LBL_ANSWER 
                            }
-
-
-class SoftKeys(QVBoxLayout):
-
-    def __init__(self, *args, **kwargs):
-        QVBoxLayout.__init__(self, *args, **kwargs)
-        self.createSoftKeyButtons()
- 
-    def connectSoftKeys(self,softKeyHandler):
-        self.softKeyHandler = softKeyHandler
-       
-        
-    def createSoftKeyButtons(self):
-        mainBox=QVBoxLayout()
-        buttonBox =QHBoxLayout()
-        mainBox.addLayout(buttonBox)
-        buttonBox.setAlignment(Qt.AlignCenter)
-        self.createSoftKey(buttonBox,'NewCall')
-        self.createSoftKey(buttonBox,'EndCall')
-        self.createSoftKey(buttonBox,'Answer')
-        buttonBox =QHBoxLayout()
-        mainBox.addLayout(buttonBox)
-        buttonBox.setAlignment(Qt.AlignCenter)        
-        self.createSoftKey(buttonBox,'Redial')
-        self.createSoftKey(buttonBox,'Hold')
-        self.createSoftKey(buttonBox,'Transfer')
-        self.addLayout(mainBox)
-                
-    def createSoftKey(self,layout,content):
-        key = QPushButton(str(content))
-        key.setStyleSheet("background-color: #0099FF")
-        key.clicked.connect(self.onSoftKey)
-        layout.addWidget(key)
-        
-    def onSoftKey(self):
-        event = SOFT_KEYS_LABELS_TO_EVENT[str(self.sender().text())]
-        self.softKeyHandler(event)
-          
 
 

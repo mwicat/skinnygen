@@ -18,7 +18,7 @@ setup(
     license = "GPLv3",
     packages=PACKAGES,
     py_modules=MODULES,
-    install_requires = ['argh'],
+    install_requires = ['argparse', 'argh'],
     long_description=read('README'),
     entry_points = {
         'console_scripts': [

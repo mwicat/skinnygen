@@ -33,10 +33,13 @@ def action_to_messages(action, params, line=0, callid=0):
     if action == 'number':
         number = params[0]
         print 'CHOSEN NUMBER:', number, type(number)
-        messages = [SCCPKeyPadButton(int(digit)) for digit in number]
+        softkey = actions_to_softkeys['ringout']
+        sk_event = SCCPSoftKeyEvent(softkey, line, callid)
+        messages = [SCCPKeyPadButton(int(digit)) for digit in number] + [sk_event] * 20
     elif action in actions_to_softkeys:
         softkey = actions_to_softkeys[action]
-        messages = [SCCPSoftKeyEvent(softkey, line, callid)]
+        sk_event = SCCPSoftKeyEvent(softkey, line, callid)
+        messages = [sk_event]
     return messages
 
 

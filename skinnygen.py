@@ -3,10 +3,6 @@
 import sys, time
 
 from sccpphone import SCCPPhone
-from gui.logwidget import LogWidget
-from gui.phoneview import PhoneView
-from actors.callactor import CallActor
-from gui.ActorView import ActorView
 
 from sccp.sccpmessage import SCCPMessage
 from sccp.sccpmessagetype import SCCPMessageType
@@ -227,14 +223,14 @@ def parse_call_factory(factory_str):
     return parse_factory('%s_call' % factory_str)
 
 
-@arg('device')
-@arg('self_line', help='Generator\'s own line')
-@arg('--host', default=SERVER_HOST, help='The host')
-@arg('--port', default=SERVER_PORT, help='The port')
-@arg('--user_handler', type=parse_user_factory, default=DEFAULT_USER_FACTORY)
-@arg('--call_handler', type=parse_call_factory, default=DEFAULT_CALL_FACTORY)
-@arg('--numbers', type=parse_numbers, default=[])
-@arg('--numbers_file', type=parse_lines_safe, default=[])
+@arg('device', help='device name (e.g. SEP0045464292A0)')
+@arg('self_line', help='device line (e.g. 472)')
+@arg('--host', default=SERVER_HOST, help='asterisk host')
+@arg('--port', default=SERVER_PORT, help='asterisk port')
+@arg('--user_handler', type=parse_user_factory, default=DEFAULT_USER_FACTORY, help='custom user behaviour handler')
+@arg('--call_handler', type=parse_call_factory, default=DEFAULT_CALL_FACTORY, help='custom call behaviour handler')
+@arg('--numbers', type=parse_numbers, default=[], help='comma separated numbers to dial  (e.g. 333,221)')
+@arg('--numbers_file', type=parse_lines_safe, default=[], help='file containing comma separated numbers to dial')
 def generate(args):
     from twisted.internet import reactor
     numbers = args.numbers_file or args.numbers
