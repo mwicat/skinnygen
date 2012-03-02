@@ -32,6 +32,9 @@ DEFAULT_USER_FACTORY = handlers.random_user_factory
 DEFAULT_CALL_FACTORY = handlers.aggressive_call_factory
 
 
+DEFAULT_BIND_ADDRESS=('', 0)
+
+
 action_to_softkey = dict([(a, sk) for sk, a in  enumerate(
         ['empty', 'redial', 'newcall',
          'hold', 'transfer',
@@ -43,6 +46,7 @@ KEYSETS_ACTIONS = {
     SKS_RINGIN: ['answer'],
     SKS_ONHOLD: ['transfer'],
     SKS_CONNTRANS: ['transfer'],
+    SKS_CONNECTED: ['transfer'],
 }
 
 CONF_DIR = os.path.expanduser('~')
@@ -75,11 +79,14 @@ class GeneratorApp():
     currentCallId = 0
     currentLine= 0
 
-    def __init__(self, reactor, device, self_line, user_factory, call_factory, numbers):
+    def __init__(self, reactor, device, self_line, user_factory, call_factory, numbers, bindAddress, serverAddress):
         self.reactor = reactor
         self.device = device
         self.self_line = self_line
         self.action_funcs = []
+
+        self.bindAddress = bindAddress
+        self.serverAddress = serverAddress
 
         self.numbers = [n for n in numbers if n != self.self_line]
 
@@ -137,7 +144,8 @@ class GeneratorApp():
             self.currentCallId = 0
         self.currentCallState = callState
         self.currentStateName = SCCPCallState.sccp_channelstates[callState]
-        self.manager.create_call('outgoing', line, callid)
+
+        self.manager.maybe_create_call('outgoing', line, callid)
 
     def handleTone(self,line,callid, tone):
         if tone == 0x21:
@@ -147,9 +155,10 @@ class GeneratorApp():
     def createTimer(self,intervalSecs,timerCallback):
         self.reactor.callLater(intervalSecs, timerCallback)
 
-    def onConnect(self,serverHost,deviceName,networkClient):
-        self.log("trying to connect to : "+serverHost+ " on " +`SERVER_PORT`)
-        self.connection = self.reactor.connectTCP(serverHost, SERVER_PORT, networkClient)
+    def onConnect(self,serverAddress,deviceName,networkClient, bindAddress):
+        addr, port = self.serverAddress
+        self.log("trying to connect to %s:%s" % (addr, port))
+        self.connection = self.reactor.connectTCP(addr, port, networkClient, bindAddress=bindAddress)
 
     def onRegistered(self):
         print 'registered'
@@ -166,7 +175,8 @@ class GeneratorApp():
     def onMessages(self, messages):
         print '###messages', messages
         for message in messages:
-            self.sccpPhone.client.sendSccpMessage(message)
+            self.reactor.callLater(0.5, self.sccpPhone.client.sendSccpMessage, message)
+            #self.sccpPhone.client.sendSccpMessage(message)
 
     def init_generator(self):
         params_generators = create_params_generators(self.numbers)
@@ -179,7 +189,7 @@ class GeneratorApp():
         print `day` + '-'+`month` + '-' + `year` \
                                    + ' ' +`hour`+':'+`minute`+':'+`seconds`
     def connect(self):
-        self.onConnect(SERVER_HOST, self.device, self.sccpPhone.client)               
+        self.onConnect(SERVER_HOST, self.device, self.sccpPhone.client, self.bindAddress)               
     
     def log(self, msg):
         timestamp = '[%010.3f]' % time.clock()
@@ -222,6 +232,11 @@ def parse_user_factory(factory_str):
 def parse_call_factory(factory_str):
     return parse_factory('%s_call' % factory_str)
 
+def parse_bind_address(address_str):
+    address_parts = address_str.split(':')
+    address = address_parts if len(address_parts) == 2 else [address_parts[0], 0]
+    return tuple(address)
+
 
 @arg('device', help='device name (e.g. SEP0045464292A0)')
 @arg('self_line', help='device line (e.g. 472)')
@@ -231,10 +246,14 @@ def parse_call_factory(factory_str):
 @arg('--call_handler', type=parse_call_factory, default=DEFAULT_CALL_FACTORY, help='custom call behaviour handler')
 @arg('--numbers', type=parse_numbers, default=[], help='comma separated numbers to dial  (e.g. 333,221)')
 @arg('--numbers_file', type=parse_lines_safe, default=[], help='file containing comma separated numbers to dial')
+@arg('--bind_address', type=parse_bind_address, default=DEFAULT_BIND_ADDRESS, help='source address to bind to')
+@arg('--server_host', default=SERVER_HOST, help='source address to bind to')
+@arg('--server_port', type=int, default=SERVER_PORT, help='source address to bind to')
 def generate(args):
     from twisted.internet import reactor
     numbers = args.numbers_file or args.numbers
-    generator = GeneratorApp(reactor, args.device, args.self_line, args.user_handler, args.call_handler, numbers)
+    serverAddress = args.server_host, args.server_port
+    generator = GeneratorApp(reactor, args.device, args.self_line, args.user_handler, args.call_handler, numbers, args.bind_address, serverAddress)
     generator.connect()
     reactor.run()
 

@@ -5,7 +5,7 @@ Installation
 
 Ubuntu:
 
-sudo apt-get install python-pip python-twisted
+sudo apt-get install python python-pip python-twisted
 sudo pip install -e git+git://github.com/mwicat/skinnygen.git#egg=skinnygen
 
 

@@ -2,6 +2,11 @@ from twisted.internet import reactor
 from threading import Event
 from generators import *
 from util import *
+from collections import defaultdict
+
+
+INSIDE_DIAL_TONE = 0x21
+
 
 def idle_user_factory(action_cb, params_generators, id):
     generator = iter(lambda: 'sleep', None)
@@ -15,7 +20,7 @@ def random_user_factory(action_cb, params_generators, id):
 
 def autoanswer_call_factory(action_cb, params_generators, line, id):
     return CallHandler(action_cb, params_generators,
-                       ['answer'],
+                       ['answer', 'ringout', 'transfer'],
                        line, id)
 
 def aggressive_call_factory(action_cb, params_generators, line, id):
@@ -60,6 +65,8 @@ class GeneratorActor:
 
 class CallHandler:
 
+    lines_calls = defaultdict(list)
+
     def __init__(self, action_cb, params_generators, actions, line, id):
         self.params_generators = params_generators
         self.action_cb = action_cb
@@ -69,6 +76,8 @@ class CallHandler:
         self.id = id
         self.actions_to_do = actions
         self.ringout_counter = 0
+        self.transfer_counter = 0
+        self.lines_calls[line].append(id)
 
     def find_action(self, actions_to_fire, actions):
         for action in actions_to_fire:
@@ -103,12 +112,23 @@ class CallHandler:
         #self.maybe_go_insane()
         if not self.sane:
             return
+
         action = self.find_action(self.actions_to_do, actions)
+
         if action == 'ringout':
+            if self.ringout_counter >= 1:
+                return
             self.ringout_counter += 1
+
+        if action == 'transfer':
+            if self.transfer_counter >= 1 or len(CallHandler.lines_calls) < 2:
+                return
+            self.transfer_counter += 1
+
         if self.ringout_counter > 50:
             print 'OVERFLOW========================================='
             import sys; sys.exit(1)
+
         if action is not None:
             self.action_cb(action, generate_params(action, self.params_generators), self.line, self.id)
 
@@ -116,5 +136,8 @@ class CallHandler:
         #self.maybe_go_insane()
         if not self.sane:
             return
+        if tone != 'inside':
+            return
+        print 'pushing number for tone', tone
         self.action_cb('number', generate_params('correct_number', self.params_generators), self.line, self.id)
 

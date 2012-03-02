@@ -35,7 +35,7 @@ def action_to_messages(action, params, line=0, callid=0):
         print 'CHOSEN NUMBER:', number, type(number)
         softkey = actions_to_softkeys['ringout']
         sk_event = SCCPSoftKeyEvent(softkey, line, callid)
-        messages = [SCCPKeyPadButton(int(digit)) for digit in number] + [sk_event] * 20
+        messages = [SCCPKeyPadButton(int(digit)) for digit in number] #+ [sk_event] * 20
     elif action in actions_to_softkeys:
         softkey = actions_to_softkeys[action]
         sk_event = SCCPSoftKeyEvent(softkey, line, callid)
@@ -62,7 +62,7 @@ class Manager:
             self.messages_handler.onMessages(messages)
 
     def on_call_action(self, action, params, line, callid):
-        print '\n=[%s] call action: %s(%s)=\n' % (id, action, params)
+        print '\n=[%s] call action: %s(%s)=\n' % (callid, action, params)
         self.execute_action(action, params, line, callid)
 
     def on_user_action(self, id, action, params):
@@ -93,6 +93,10 @@ class Manager:
         if self.user_handler is not None:
             self.user_handler.stop()
 
+    def maybe_create_call(self, ctype, line, callid):
+        if callid not in self.call_handlers:
+            self.create_call(ctype, line, callid)
+
     def create_call(self, ctype, line, callid):
         generator = (in_generator if ctype == 'ingoing' else out_generator)()
         call_handler = self.call_factory(
@@ -117,7 +121,8 @@ def choose_number(numbers):
 def create_params_generators(numbers):
     sleep_factory = lambda: [util.randfloat(0, 4)]
     incorrect_numbers_factory = lambda: [number_generator]
-    correct_numbers_factory = lambda: [choose_number(numbers)]
+#    correct_numbers_factory = lambda: [choose_number(numbers)]
+    correct_numbers_factory = lambda: [numbers[0]]
 
     params_generators = {'correct_number': correct_numbers_factory,
                          'incorrect_number': incorrect_numbers_factory,

@@ -6,6 +6,8 @@ Created on Jun 14, 2011
 from twisted.internet.protocol import ClientFactory
 from network.sccpclientprotocol import SCCPClientProtocol
 
+from datetime import datetime
+
 class SCCPClientFactory(ClientFactory):
     """ Created with callbacks for connection and receiving.
         send_msg can be used to send messages when connected.
@@ -47,6 +49,7 @@ class SCCPClientFactory(ClientFactory):
         self.messageHandlers[self.UNKNOWN_KEY]=unknownHandler
         
     def handleMessage(self,message):
+        print '%s: SCCP received %s' % (datetime.now(), message.toStr())
         if (self.messageHandlers.has_key(message.sccpmessageType)):
             self.messageHandlers[message.sccpmessageType](message)
         else:
