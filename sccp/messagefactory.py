@@ -18,6 +18,9 @@ from sccp.sccpstarttone import SCCPStartTone
 from sccp.sccplinestat import SCCPLineStat
 from sccp.sccpselectsoftkeys import SCCPSelectSoftKeys
 
+from sccp.sccpopenreceivechannelack import SCCPOpenReceiveChannelAck
+
+
 class MessageFactory():
     '''
     sccp message factory create message from received buffer
@@ -27,6 +30,7 @@ class MessageFactory():
                 SCCPMessageType.RegisterAckMessage: SCCPRegisterAck,
                 SCCPMessageType.CapabilitiesReqMessage: SCCPCapabilitiesReq,
                 SCCPMessageType.KeepAliveAckMessage: SCCPKeepAliveAck,
+                SCCPMessageType.OpenReceiveChannelAck: SCCPOpenReceiveChannelAck,
                 SCCPMessageType.DefineTimeDate: SCCPDefineTimeDate,
                 SCCPMessageType.SetSpeakerModeMessage: SCCPSetSpeakerMode,
                 SCCPMessageType.CallStateMessage: SCCPCallState,

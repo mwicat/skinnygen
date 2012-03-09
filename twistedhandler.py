@@ -78,7 +78,9 @@ class Manager:
             self.on_user_action, self.params_generators, self.user_id)
         self.user_handler.start()
 
-    def on_dialtone(self, callid, tone):
+    def on_dialtone(self, line, callid, tone):
+        if not self.has_call(callid):
+            self.create_call('ingoing', line, callid)
         self.call_handlers[callid].on_dialtone(tone)
 
     def on_actions(self, line, callid, actions):
@@ -93,9 +95,14 @@ class Manager:
         if self.user_handler is not None:
             self.user_handler.stop()
 
+    def got_call_handler(self, ctype, line, callid):
+        return callid in self.call_handlers
+    
     def maybe_create_call(self, ctype, line, callid):
-        if callid not in self.call_handlers:
-            self.create_call(ctype, line, callid)
+        return \
+            self.call_handlers[callid] \
+            if self.got_call_handler(ctype, line, callid) \
+            else self.create_call(ctype, line, callid)
 
     def create_call(self, ctype, line, callid):
         generator = (in_generator if ctype == 'ingoing' else out_generator)()
@@ -104,6 +111,7 @@ class Manager:
             line, callid)
         call_handler.start()
         self.call_handlers[callid] = call_handler
+        return call_handler
 
 
 def number_generator():
@@ -122,7 +130,7 @@ def create_params_generators(numbers):
     sleep_factory = lambda: [util.randfloat(0, 4)]
     incorrect_numbers_factory = lambda: [number_generator]
 #    correct_numbers_factory = lambda: [choose_number(numbers)]
-    correct_numbers_factory = lambda: [numbers[0]]
+    correct_numbers_factory = lambda: numbers
 
     params_generators = {'correct_number': correct_numbers_factory,
                          'incorrect_number': incorrect_numbers_factory,

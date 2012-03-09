@@ -13,6 +13,7 @@ from sccp.sccptimedatereq import SCCPTimeDateReq
 from sccp.sccpcallstate import SCCPCallState
 from sccp.sccpkeypadbutton import SCCPKeyPadButton
 from sccp.sccpsoftkeyevent import SCCPSoftKeyEvent
+from sccp.sccpopenreceivechannelack import SCCPOpenReceiveChannelAck
 from gui.softkeys import SKINNY_LBL_NEWCALL, SKINNY_LBL_ANSWER,\
     SKINNY_LBL_ENDCALL
 from sccp.sccpmessage import SCCPMessage
@@ -73,6 +74,8 @@ class SCCPPhone():
         self.client.addHandler(SCCPMessageType.StartToneMessage,self.onStartTone)
         self.client.addHandler(SCCPMessageType.LineStatMessage,self.onLineStat)
         self.client.addHandler(SCCPMessageType.SelectSoftKeysMessage, self.onSelectSoftKeys)
+
+        self.client.addHandler(SCCPMessageType.OpenReceiveChannel, self.onOpenReceiveChannel)
         return self.client
 
     def on_sccp_connect_success(self):
@@ -145,6 +148,9 @@ class SCCPPhone():
     def onSelectSoftKeys(self,message):
         if self.softKeysHandler is not None:
             self.softKeysHandler.handleSoftKeys(message.line,message.callId,message.softKeySet, message.softKeyMap)
+
+    def onOpenReceiveChannel(self,message):
+        self.client.sendSccpMessage(SCCPOpenReceiveChannelAck(0, self.host, 31510, message.callId))
 
     def onActivateCallPlane(self,message):
         self.log('Activate call plane on line '+`message.line`)

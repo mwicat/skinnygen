@@ -149,7 +149,7 @@ class GeneratorApp():
 
     def handleTone(self,line,callid, tone):
         if tone == 0x21:
-            self.manager.on_dialtone(callid, 'inside')
+            self.manager.on_dialtone(line, callid, 'inside')
         print 'got tone', tone
 
     def createTimer(self,intervalSecs,timerCallback):

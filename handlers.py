@@ -20,6 +20,11 @@ def random_user_factory(action_cb, params_generators, id):
 
 def autoanswer_call_factory(action_cb, params_generators, line, id):
     return CallHandler(action_cb, params_generators,
+                       ['answer'],
+                       line, id)
+
+def autotransfer_call_factory(action_cb, params_generators, line, id):
+    return CallHandler(action_cb, params_generators,
                        ['answer', 'ringout', 'transfer'],
                        line, id)
 
