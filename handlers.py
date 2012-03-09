@@ -30,7 +30,7 @@ def autotransfer_call_factory(action_cb, params_generators, line, id):
 
 def aggressive_call_factory(action_cb, params_generators, line, id):
     return CallHandler(action_cb, params_generators,
-                       ['ringout', 'answer', 'transfer'],
+                       ['ringout', 'answer'],
                        line, id)
 
 

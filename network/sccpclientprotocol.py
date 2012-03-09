@@ -43,6 +43,7 @@ class SCCPClientProtocol(IntNStringReceiver):
 
 
     def connectionMade(self):
+        self.transport.setTcpNoDelay(True)
         self.factory.clientReady(self)
     
         

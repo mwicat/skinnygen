@@ -150,7 +150,7 @@ class SCCPPhone():
             self.softKeysHandler.handleSoftKeys(message.line,message.callId,message.softKeySet, message.softKeyMap)
 
     def onOpenReceiveChannel(self,message):
-        self.client.sendSccpMessage(SCCPOpenReceiveChannelAck(0, self.host, 31510, message.callId))
+        self.client.sendSccpMessage(SCCPOpenReceiveChannelAck(0, self.host, 40000, message.conferenceId))
 
     def onActivateCallPlane(self,message):
         self.log('Activate call plane on line '+`message.line`)

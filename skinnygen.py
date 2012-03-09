@@ -108,7 +108,8 @@ class GeneratorApp():
             raise Exception('unknown action')
  
     def createPhone(self):
-        self.sccpPhone = sccpPhone = SCCPPhone(SERVER_HOST, self.device)
+        host = self.bindAddress[0]
+        self.sccpPhone = sccpPhone = SCCPPhone(host, self.device)
         sccpPhone.setLogger(self.log)
         sccpPhone.setTimerProvider(self)
         sccpPhone.setRegisteredHandler(self)

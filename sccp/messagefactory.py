@@ -19,6 +19,7 @@ from sccp.sccplinestat import SCCPLineStat
 from sccp.sccpselectsoftkeys import SCCPSelectSoftKeys
 
 from sccp.sccpopenreceivechannelack import SCCPOpenReceiveChannelAck
+from sccp.sccpopenreceivechannel import SCCPOpenReceiveChannel
 
 
 class MessageFactory():
@@ -30,6 +31,7 @@ class MessageFactory():
                 SCCPMessageType.RegisterAckMessage: SCCPRegisterAck,
                 SCCPMessageType.CapabilitiesReqMessage: SCCPCapabilitiesReq,
                 SCCPMessageType.KeepAliveAckMessage: SCCPKeepAliveAck,
+                SCCPMessageType.OpenReceiveChannel: SCCPOpenReceiveChannel,
                 SCCPMessageType.OpenReceiveChannelAck: SCCPOpenReceiveChannelAck,
                 SCCPMessageType.DefineTimeDate: SCCPDefineTimeDate,
                 SCCPMessageType.SetSpeakerModeMessage: SCCPSetSpeakerMode,
