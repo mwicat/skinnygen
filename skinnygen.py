@@ -68,6 +68,14 @@ def parse_lines_safe(fname):
     except IOError:
         return []
 
+from twisted.internet import defer
+
+def wait(seconds, result=None):
+    d = defer.Deferred()
+    reactor.callLater(seconds, d.callback, result)
+    return d
+
+
 
 def randwait(min_wait, max_wait):
     return min_wait + random.random() * (max_wait-min_wait)
@@ -165,10 +173,15 @@ class GeneratorApp():
         print 'registered'
         softKeySetMessage = SCCPMessage(SCCPMessageType.SoftKeySetReqMessage)
         softKeyTemplateMessage = SCCPMessage(SCCPMessageType.SoftKeyTemplateReqMessage)
-        self.sccpPhone.client.sendSccpMessage(softKeyTemplateMessage)
-        self.sccpPhone.client.sendSccpMessage(softKeySetMessage)
+        self.sendMessage(softKeyTemplateMessage)
+        self.sendMessage(softKeySetMessage)
         self.init_generator()
 
+    @defer.inlineCallbacks
+    def sendMessage(self, message):
+        self.sccpPhone.client.sendSccpMessage(message)
+        print 'sending sccp message', message
+        yield wait(0.001)
 
     def displayLineInfo(self,line,dirNumber):
         print `line`+' : ' + `dirNumber`
@@ -176,8 +189,7 @@ class GeneratorApp():
     def onMessages(self, messages):
         print '###messages', messages
         for message in messages:
-            self.reactor.callLater(0.5, self.sccpPhone.client.sendSccpMessage, message)
-            #self.sccpPhone.client.sendSccpMessage(message)
+            self.sendMessage(message)
 
     def init_generator(self):
         params_generators = create_params_generators(self.numbers)
@@ -203,10 +215,10 @@ class GeneratorApp():
     def action_to_funspec(self, (atype, args)):
         if atype == 'offhook':
             message = SCCPMessage(SCCPMessageType.OffHookMessage)
-            func = self.sccpPhone.client.sendSccpMessage, [message]
+            func = self.sendMessage, [message]
         elif atype == 'onhook':
             message = SCCPMessage(SCCPMessageType.OnHookMessage)
-            func = self.sccpPhone.client.sendSccpMessage, [message]
+            func = self.sendMessage, [message]
         elif atype == 'wait':
             func = self.reactor.callLater, [args[0], self.simulate_actions]
         elif atype == 'softkey':
