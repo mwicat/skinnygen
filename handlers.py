@@ -52,10 +52,10 @@ class GeneratorActor:
 
     def run(self):
         for action in self.action_generator:
-            if action == 'newcall':
-                if self.did_call:
-                    continue
-                self.did_call = True
+            # if action == 'newcall':
+            #     if self.did_call:
+            #         continue
+            #     self.did_call = True
             params = generate_params(action, self.params_generators)
             if self.delete_event.is_set():
                 break
