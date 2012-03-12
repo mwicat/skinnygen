@@ -129,8 +129,8 @@ def choose_number(numbers):
 def create_params_generators(numbers):
     sleep_factory = lambda: [util.randfloat(0, 4)]
     incorrect_numbers_factory = lambda: [number_generator]
-#    correct_numbers_factory = lambda: [choose_number(numbers)]
-    correct_numbers_factory = lambda: numbers
+    correct_numbers_factory = lambda: [choose_number(numbers)]
+#    correct_numbers_factory = lambda: numbers
 
     params_generators = {'correct_number': correct_numbers_factory,
                          'incorrect_number': incorrect_numbers_factory,
