@@ -8,6 +8,8 @@ from network.sccpclientprotocol import SCCPClientProtocol
 
 from datetime import datetime
 
+from util import log
+
 class SCCPClientFactory(ClientFactory):
     """ Created with callbacks for connection and receiving.
         send_msg can be used to send messages when connected.
@@ -27,8 +29,9 @@ class SCCPClientFactory(ClientFactory):
     def clientConnectionFailed(self, connector, reason):
         self.connect_fail_callback(reason)
     
-    def clientReady(self, client):
+    def clientReady(self, client, host):
         self.client = client
+        self.host = host
         self.connect_success_callback()
             
     def send_msg(self, msg):
@@ -49,7 +52,8 @@ class SCCPClientFactory(ClientFactory):
         self.messageHandlers[self.UNKNOWN_KEY]=unknownHandler
         
     def handleMessage(self,message):
-        print '%s: SCCP received %s' % (datetime.now(), message.toStr())
+        #print '[%s] %s: SCCP received %s' % (self.host, datetime.now(), message.toStr())
+        log('[%s] %s: SCCP received %s' % (self.host, datetime.now(), message.toStr()))
         if (self.messageHandlers.has_key(message.sccpmessageType)):
             self.messageHandlers[message.sccpmessageType](message)
         else:

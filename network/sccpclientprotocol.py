@@ -44,7 +44,8 @@ class SCCPClientProtocol(IntNStringReceiver):
 
     def connectionMade(self):
         #self.transport.setTcpNoDelay(True)
-        self.factory.clientReady(self)
+        addr = self.transport.getHost()
+        self.factory.clientReady(self, addr)
     
         
     def sendString(self, data):

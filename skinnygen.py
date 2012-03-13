@@ -21,6 +21,8 @@ import handlers
 
 from argh import *
 
+from util import log
+
 SKS_ONHOOK, SKS_CONNECTED, SKS_ONHOLD, \
 SKS_RINGIN, SKS_OFFHOOK, SKS_CONNTRANS, SKS_DIGOFF, \
 SKS_CONNCONF, SKS_RINGOUT, SKS_OFFHOOKFEAT = range(10)
@@ -118,7 +120,7 @@ class GeneratorApp():
     def createPhone(self):
         host = self.bindAddress[0]
         self.sccpPhone = sccpPhone = SCCPPhone(host, self.device)
-        sccpPhone.setLogger(self.log)
+        sccpPhone.setLogger(log)
         sccpPhone.setTimerProvider(self)
         sccpPhone.setRegisteredHandler(self)
         sccpPhone.setToneHandler(self)
@@ -130,7 +132,7 @@ class GeneratorApp():
 
     def handleSoftKeys(self, line, callid, softKeySet, softKeyMap):
         actions = KEYSETS_ACTIONS[softKeySet] if softKeySet in KEYSETS_ACTIONS else []
-        print 'SOFT KEYS', line, callid, softKeySet, softKeyMap, 'ACTIONS', actions
+        log('SOFT KEYS %s' % ([line, callid, softKeySet, softKeyMap, 'ACTIONS', actions]))
         self.manager.on_actions(line, callid, actions)
 
     def generate_action(self):
@@ -159,18 +161,16 @@ class GeneratorApp():
     def handleTone(self,line,callid, tone):
         if tone == 0x21:
             self.manager.on_dialtone(line, callid, 'inside')
-        print 'got tone', tone
 
     def createTimer(self,intervalSecs,timerCallback):
         self.reactor.callLater(intervalSecs, timerCallback)
 
     def onConnect(self,serverAddress,deviceName,networkClient, bindAddress):
         addr, port = self.serverAddress
-        self.log("trying to connect to %s:%s" % (addr, port))
+        log("trying to connect to %s:%s" % (addr, port))
         self.connection = self.reactor.connectTCP(addr, port, networkClient, bindAddress=bindAddress)
 
     def onRegistered(self):
-        print 'registered'
         softKeySetMessage = SCCPMessage(SCCPMessageType.SoftKeySetReqMessage)
         softKeyTemplateMessage = SCCPMessage(SCCPMessageType.SoftKeyTemplateReqMessage)
         self.sendMessage(softKeyTemplateMessage)
@@ -180,14 +180,14 @@ class GeneratorApp():
     @defer.inlineCallbacks
     def sendMessage(self, message):
         self.sccpPhone.client.sendSccpMessage(message)
-        print 'sending sccp message', message
+        log('sending sccp message %s' % message)
         yield wait(0.001)
 
     def displayLineInfo(self,line,dirNumber):
-        print `line`+' : ' + `dirNumber`
+        #print `line`+' : ' + `dirNumber`
+        pass
 
     def onMessages(self, messages):
-        print '###messages', messages
         for message in messages:
             self.sendMessage(message)
 
@@ -199,17 +199,14 @@ class GeneratorApp():
         self.manager.start()
         
     def setDateTime(self,day,month,year,hour,minute,seconds):
-        print `day` + '-'+`month` + '-' + `year` \
-                                   + ' ' +`hour`+':'+`minute`+':'+`seconds`
+        pass
+        #print `day` + '-'+`month` + '-' + `year` + ' ' +`hour`+':'+`minute`+':'+`seconds`
+
     def connect(self):
         self.onConnect(SERVER_HOST, self.device, self.sccpPhone.client, self.bindAddress)               
     
-    def log(self, msg):
-        timestamp = '[%010.3f]' % time.clock()
-        print timestamp + ' ' + str(msg)
-
     def closeEvent(self, e):
-        self.log("close event")
+        log("close event")
         self.reactor.stop()
 
     def action_to_funspec(self, (atype, args)):

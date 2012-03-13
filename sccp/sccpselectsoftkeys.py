@@ -10,7 +10,6 @@ from struct import unpack
 class SCCPSelectSoftKeys(SCCPMessage):
 
     def __init__(self):
-        print '^^^^^ got soft keys'
         SCCPMessage.__init__(self, SCCPMessageType.SelectSoftKeysMessage)
         
         

@@ -16,6 +16,8 @@ from sccp.sccpkeypadbutton import SCCPKeyPadButton
 from sccp.sccpsoftkeyevent import SCCPSoftKeyEvent
 from gui.softkeys import *
 
+from util import log
+
 actions_to_softkeys = {
                            'redial' : SKINNY_LBL_REDIAL,
                            'newcall' : SKINNY_LBL_NEWCALL,
@@ -60,13 +62,13 @@ class Manager:
         messages = action_to_messages(action, params, line, callid)
         if self.messages_handler is not None:
             self.messages_handler.onMessages(messages)
-
+            
     def on_call_action(self, action, params, line, callid):
-        print '\n=[%s] call action: %s(%s)=\n' % (callid, action, params)
+        log('[%s] call action: %s(%s)' % (callid, action, params))
         self.execute_action(action, params, line, callid)
 
     def on_user_action(self, id, action, params):
-        print '\n=[%s] user action: %s(%s)=\n' % (id, action, params)
+        log('[%s] user action: %s(%s)' % (id, action, params))
         self.execute_action(action, params)
 
     def delete_call(self, id):
@@ -74,6 +76,7 @@ class Manager:
         call_handler.stop()
 
     def start(self):
+        log('starting user %s' % self.user_id)
         self.user_handler = self.user_factory(
             self.on_user_action, self.params_generators, self.user_id)
         self.user_handler.start()

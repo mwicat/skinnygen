@@ -4,6 +4,7 @@ from generators import *
 from util import *
 from collections import defaultdict
 
+import threading
 
 INSIDE_DIAL_TONE = 0x21
 
@@ -34,9 +35,10 @@ def aggressive_call_factory(action_cb, params_generators, line, id):
                        line, id)
 
 
-class GeneratorActor:
+class GeneratorActor(threading.Thread):
 
     def __init__(self, action_cb, action_generator, params_generators, id):
+        threading.Thread.__init__(self)
         self.action_generator = action_generator
         self.params_generators = params_generators
         self.action_cb = action_cb
@@ -47,26 +49,30 @@ class GeneratorActor:
     def stop(self):
         self.delete_event.set()
 
-    def start(self):
-        reactor.callInThread(self.run)
+    def call_action(self, action, params):
+        reactor.callFromThread(self.action_cb, self.id,
+                               action, params)
 
+    def sleep(self):
+        self.delete_event.wait(0.5)
+        
     def run(self):
+        log('started user %s' % self.id)        
         for action in self.action_generator:
             # if action == 'newcall':
             #     if self.did_call:
             #         continue
             #     self.did_call = True
+
+            log('user %s: generated user action: %s' % (self.id, action))
+
             params = generate_params(action, self.params_generators)
             if self.delete_event.is_set():
                 break
             if action == 'sleep':
-                print '\n=[%s] sleeping=\n' % self.id
-                self.delete_event.wait(0.5)
+                self.sleep()
             else:
-                reactor.callFromThread(self.action_cb,
-                                       self.id,
-                                       action,
-                                       params)
+                self.call_action(action, params)
 
 class CallHandler:
 
@@ -113,10 +119,16 @@ class CallHandler:
         if not self.sane:
             self.go_insane()
 
+    def call_action(self, action, params):
+        #reactor.callFromThread(self.action_cb, params, self.line, self.id)
+        self.action_cb(action, params, self.line, self.id)
+
     def on_actions(self, actions):
         #self.maybe_go_insane()
         if not self.sane:
             return
+
+        print 'on_actions', actions
 
         action = self.find_action(self.actions_to_do, actions)
 
@@ -135,7 +147,14 @@ class CallHandler:
             import sys; sys.exit(1)
 
         if action is not None:
-            self.action_cb(action, generate_params(action, self.params_generators), self.line, self.id)
+            log('call %s: generated call action: %s' % (self.id, action))
+            # if action == 'number':
+            #     self.call_action('onhook', [])
+            #     self.call_action('offhook', [])
+            self.call_action(action, generate_params(action, self.params_generators))
+            # if action == 'number':
+            #     self.sleep()
+
 
     def on_dialtone(self, tone):
         #self.maybe_go_insane()
@@ -143,6 +162,5 @@ class CallHandler:
             return
         if tone != 'inside':
             return
-        print 'pushing number for tone', tone
         self.action_cb('number', generate_params('correct_number', self.params_generators), self.line, self.id)
 
