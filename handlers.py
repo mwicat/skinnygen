@@ -1,13 +1,11 @@
-from twisted.internet import reactor
+from twisted.internet import defer
 from threading import Event
 from generators import *
 from util import *
 from collections import defaultdict
 
-import threading
-
 INSIDE_DIAL_TONE = 0x21
-
+SLEEP_TIME = 3
 
 def idle_user_factory(action_cb, params_generators, id):
     generator = iter(lambda: 'sleep', None)
@@ -35,44 +33,53 @@ def aggressive_call_factory(action_cb, params_generators, line, id):
                        line, id)
 
 
-class GeneratorActor(threading.Thread):
+class GeneratorActor:
 
     def __init__(self, action_cb, action_generator, params_generators, id):
-        threading.Thread.__init__(self)
         self.action_generator = action_generator
         self.params_generators = params_generators
         self.action_cb = action_cb
-        self.delete_event = Event()
         self.id = id
         self.did_call = False
+        self.running = False
+        self.delayed_call = None
+
+    def start(self):
+        reactor.callLater(0, self.run)
 
     def stop(self):
-        self.delete_event.set()
+        self.running = False
+        if self.delayed_call is not None:
+            self.delayed_call.cancel()
 
+    @defer.inlineCallbacks
     def call_action(self, action, params):
-        reactor.callFromThread(self.action_cb, self.id,
-                               action, params)
+        if action == 'sleep':
+            yield self.sleep(SLEEP_TIME)
+        else:
+            self.action_cb(self.id, action, params)
 
-    def sleep(self):
-        self.delete_event.wait(0.5)
-        
+    @defer.inlineCallbacks
+    def sleep(self, tm):
+        self.delayed_call = sleep(SLEEP_TIME)
+        yield self.delayed_call
+        self.delayed_call = None
+
+    @defer.inlineCallbacks
     def run(self):
-        log('started user %s' % self.id)        
+        log('started user %s' % self.id)
+        self.running = True
         for action in self.action_generator:
             # if action == 'newcall':
             #     if self.did_call:
             #         continue
             #     self.did_call = True
-
             log('user %s: generated user action: %s' % (self.id, action))
-
             params = generate_params(action, self.params_generators)
-            if self.delete_event.is_set():
+            yield self.call_action(action, params)
+            if not self.running:
                 break
-            if action == 'sleep':
-                self.sleep()
-            else:
-                self.call_action(action, params)
+
 
 class CallHandler:
 
@@ -106,23 +113,15 @@ class CallHandler:
         if self.call_actor is not None:
             self.call_actor.stop()
 
-    def go_insane(self):
-        generator = iter(lambda: random.choice(ACTIONS), None)
-        self.call_actor = Actor(self.action_cb,
-                                generator,
-                                self.params_generators,
-                                self.id)
-        reactor.callInThread(self.call_actor.start)
-
-    def maybe_go_insane(self):
-        self.sane = random.choice([True, False])
-        if not self.sane:
-            self.go_insane()
-
     def call_action(self, action, params):
         #reactor.callFromThread(self.action_cb, params, self.line, self.id)
         self.action_cb(action, params, self.line, self.id)
 
+    @defer.inlineCallbacks
+    def sleep(self, tm):
+        yield sleep(SLEEP_TIME)
+
+    @defer.inlineCallbacks
     def on_actions(self, actions):
         #self.maybe_go_insane()
         if not self.sane:
@@ -148,12 +147,12 @@ class CallHandler:
 
         if action is not None:
             log('call %s: generated call action: %s' % (self.id, action))
-            # if action == 'number':
-            #     self.call_action('onhook', [])
-            #     self.call_action('offhook', [])
+            if action == 'number':
+                self.call_action('onhook', [])
+                self.call_action('offhook', [])
             self.call_action(action, generate_params(action, self.params_generators))
-            # if action == 'number':
-            #     self.sleep()
+            if action == 'number':
+                yield self.sleep()
 
 
     def on_dialtone(self, tone):

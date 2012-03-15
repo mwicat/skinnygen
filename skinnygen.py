@@ -1,5 +1,17 @@
 #!/usr/bin/env python
 
+from twisted.internet.error import ReactorAlreadyInstalledError
+try:
+    from twisted.internet import epollreactor
+    epollreactor.install()
+    print 'installed reactor'
+except ReactorAlreadyInstalledError:
+    print 'already installed'
+    pass
+
+from twisted.internet import reactor
+
+
 import sys, time
 
 from sccpphone import SCCPPhone
@@ -22,6 +34,8 @@ import handlers
 from argh import *
 
 from util import log
+
+
 
 SKS_ONHOOK, SKS_CONNECTED, SKS_ONHOLD, \
 SKS_RINGIN, SKS_OFFHOOK, SKS_CONNTRANS, SKS_DIGOFF, \

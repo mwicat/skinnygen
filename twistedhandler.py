@@ -1,14 +1,7 @@
-from twisted.internet import reactor
-from threading import Event
-
 from Queue import Queue
-
 from collections import defaultdict, Iterable
-
 from generators import *
-
 from const import *
-
 import util
 
 from sccp.sccpkeypadbutton import SCCPKeyPadButton
@@ -157,5 +150,6 @@ def test_calls():
 
 
 if __name__ == '__main__':
+    from twisted.internet import reactor
     reactor.callFromThread(test_calls)
     reactor.run()
