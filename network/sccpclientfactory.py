@@ -8,7 +8,10 @@ from network.sccpclientprotocol import SCCPClientProtocol
 
 from datetime import datetime
 
-from util import log
+
+import logging
+log = logging.getLogger(__name__)
+
 
 class SCCPClientFactory(ClientFactory):
     """ Created with callbacks for connection and receiving.
@@ -31,7 +34,7 @@ class SCCPClientFactory(ClientFactory):
     
     def clientReady(self, client, host):
         self.client = client
-        self.host = host
+        self.host = host.host
         self.connect_success_callback()
             
     def send_msg(self, msg):
@@ -52,15 +55,14 @@ class SCCPClientFactory(ClientFactory):
         self.messageHandlers[self.UNKNOWN_KEY]=unknownHandler
         
     def handleMessage(self,message):
-        #print '[%s] %s: SCCP received %s' % (self.host, datetime.now(), message.toStr())
-        log('[%s] %s: SCCP received %s' % (self.host, datetime.now(), message.toStr()))
+        log.info('%s < %s' % (self.host, message.toStr()))
         if (self.messageHandlers.has_key(message.sccpmessageType)):
             self.messageHandlers[message.sccpmessageType](message)
         else:
             if (self.messageHandlers.has_key(self.UNKNOWN_KEY)):
                 self.messageHandlers[self.UNKNOWN_KEY](message)
             else:
-                print "ERROR unknown message "+str(message.sccpmessageType) +" no handler"
+                log.warn("unknown message "+str(message.sccpmessageType) +" no handler")
                
      
 

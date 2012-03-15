@@ -73,7 +73,7 @@ class SCCPClientWindow(QMainWindow):
         
         
     def createOneShotTimer(self,timerInSec,timerHandler):
-        self.log('timer request sec : ' + `timerInSec`)
+        log.info('timer request sec : ' + `timerInSec`)
         oneTimer = QTimer(self)
         oneTimer.setSingleShot(True)
         oneTimer.timeout.connect(timerHandler)
@@ -90,7 +90,7 @@ class SCCPClientWindow(QMainWindow):
             phoneView.connectIndicator.next()
             
     def onConnect(self,serverHost,deviceName,networkClient):
-        self.log("trying to connect to : "+serverHost+ " on " +`SERVER_PORT`)
+        log.info("trying to connect to : "+serverHost+ " on " +`SERVER_PORT`)
         self.connection = self.reactor.connectTCP(serverHost, SERVER_PORT, networkClient)
 
     
@@ -104,7 +104,7 @@ class SCCPClientWindow(QMainWindow):
         self.log_widget.append(timestamp + ' ' + str(msg))
 
     def closeEvent(self, e):
-        self.log("close event")
+        log.info("close event")
         self.reactor.stop()
         
 

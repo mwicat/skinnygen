@@ -33,13 +33,15 @@ import handlers
 
 from argh import *
 
-from util import log
-
+import logging
+log = logging.getLogger(__name__)
 
 
 SKS_ONHOOK, SKS_CONNECTED, SKS_ONHOLD, \
 SKS_RINGIN, SKS_OFFHOOK, SKS_CONNTRANS, SKS_DIGOFF, \
 SKS_CONNCONF, SKS_RINGOUT, SKS_OFFHOOKFEAT = range(10)
+
+
 
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 2000
@@ -50,6 +52,12 @@ DEFAULT_CALL_FACTORY = handlers.aggressive_call_factory
 
 DEFAULT_BIND_ADDRESS=('', 0)
 
+KEYSETS_NAMES = dict(enumerate(
+        [
+            'onhook', 'connected', 'onhold',
+            'ringin', 'offhook', 'conntrans', 'digoff',
+            'connconf', 'ringout', 'offhookfeat'
+            ]))
 
 action_to_softkey = dict([(a, sk) for sk, a in  enumerate(
         ['empty', 'redial', 'newcall',
@@ -146,7 +154,8 @@ class GeneratorApp():
 
     def handleSoftKeys(self, line, callid, softKeySet, softKeyMap):
         actions = KEYSETS_ACTIONS[softKeySet] if softKeySet in KEYSETS_ACTIONS else []
-        log('SOFT KEYS %s' % ([line, callid, softKeySet, softKeyMap, 'ACTIONS', actions]))
+        softKeySetName = KEYSETS_NAMES.get(softKeySet, softKeySet)
+        log.info('call %s - keyset %s' % (callid, softKeySetName)) 
         self.manager.on_actions(line, callid, actions)
 
     def generate_action(self):
@@ -181,7 +190,7 @@ class GeneratorApp():
 
     def onConnect(self,serverAddress,deviceName,networkClient, bindAddress):
         addr, port = self.serverAddress
-        log("trying to connect to %s:%s" % (addr, port))
+        log.info("trying to connect to %s:%s" % (addr, port))
         self.connection = self.reactor.connectTCP(addr, port, networkClient, bindAddress=bindAddress)
 
     def onRegistered(self):
@@ -194,7 +203,7 @@ class GeneratorApp():
     @defer.inlineCallbacks
     def sendMessage(self, message):
         self.sccpPhone.client.sendSccpMessage(message)
-        log('sending sccp message %s' % message)
+        log.info('sending sccp message %s' % message)
         yield wait(0.001)
 
     def displayLineInfo(self,line,dirNumber):
@@ -220,7 +229,7 @@ class GeneratorApp():
         self.onConnect(SERVER_HOST, self.device, self.sccpPhone.client, self.bindAddress)               
     
     def closeEvent(self, e):
-        log("close event")
+        log.info("close event")
         self.reactor.stop()
 
     def action_to_funspec(self, (atype, args)):

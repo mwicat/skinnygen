@@ -11,10 +11,6 @@ def generate_params(action, params_generators):
     params = params_factory() if callable(params_factory) else params_factory
     return params
 
-def log(msg):
-    timestamp = '[%010.3f]' % time.clock()
-    print timestamp + ' ' + str(msg)
-
 def sleep(tm):
     """Some function that returns a Deferred."""
     d = defer.Deferred()

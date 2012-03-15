@@ -19,6 +19,10 @@ from gui.softkeys import SKINNY_LBL_NEWCALL, SKINNY_LBL_ANSWER,\
 from sccp.sccpmessage import SCCPMessage
 from sccp.sccplinestatreq import SCCPLineStatReq
 
+import logging
+log = logging.getLogger(__name__)
+
+
 class SCCPPhone():
     '''
     Main sccp phone class
@@ -55,11 +59,11 @@ class SCCPPhone():
         self.softKeysHandler = softKeysHandler
         
     def addCallHandler(self,callHandler):
-        self.log(self.deviceName + ' adding call handler')
+        log.info(self.deviceName + ' adding call handler')
         self.callHandlers.add(callHandler)
         
     def createClient(self):
-        self.log('creating sccp client factory')
+        log.info('creating sccp client factory')
         self.client = SCCPClientFactory(
                         self.on_sccp_connect_success,
                         self.on_sccp_connect_fail)
@@ -79,56 +83,56 @@ class SCCPPhone():
         return self.client
 
     def on_sccp_connect_success(self):
-        self.log('Connected to server. Sending register with phone set : ' + self.deviceName)
+        log.info('Connected to server. Sending register with phone set : ' + self.deviceName)
         registerMessage = SCCPRegister(self.deviceName, self.host)
         self.client.sendSccpMessage(registerMessage)
         
     def on_sccp_connect_fail(self, reason):
         # reason is a twisted.python.failure.Failure  object
-        self.log('Connection failed: %s' % reason.getErrorMessage())
+        log.info('Connection failed: %s' % reason.getErrorMessage())
         
     def onKeepAliveTimer(self):
-        self.log('on keep alive')
+        log.info('on keep alive')
         message = SCCPMessage(SCCPMessageType.KeepAliveMessage)
         self.client.sendSccpMessage(message)
         
     def onUnknownMessage(self,message):
-        self.log('receive unkown message ' + message.toStr())
+        log.info('receive unkown message ' + message.toStr())
 
     def onRegisteredAck(self,registerAck):
-        self.log("sccp phone registered")
-        self.log("--          keepAliveInterval : " + `registerAck.keepAliveInterval`)
-        self.log("--               dateTemplate : " + `registerAck.dateTemplate`)
-        self.log("-- secondaryKeepAliveInterval : " + `registerAck.secondaryKeepAliveInterval`)
+        log.info("sccp phone registered")
+        log.info("--          keepAliveInterval : " + `registerAck.keepAliveInterval`)
+        log.info("--               dateTemplate : " + `registerAck.dateTemplate`)
+        log.info("-- secondaryKeepAliveInterval : " + `registerAck.secondaryKeepAliveInterval`)
         self.timerProvider.createTimer(registerAck.keepAliveInterval,self.onKeepAliveTimer)
         self.registeredHandler.onRegistered()
 
         
     def onKeepAliveAck(self,message):
-        self.log("Keepalive ack")
+        log.info("Keepalive ack")
     
     def onCapabilitiesReq(self,message):
-        self.log("sending capabilities response")
+        log.info("sending capabilities response")
         self.client.sendSccpMessage(SCCPCapabilitiesRes())
-        self.log("sending button template request message")
+        log.info("sending button template request message")
         self.client.sendSccpMessage(SCCPButtonTemplateReq())
-        self.log("sending line status request message")
+        log.info("sending line status request message")
         self.client.sendSccpMessage(SCCPLineStatReq(1))
-        self.log("sending register available lines")
+        log.info("sending register available lines")
         self.client.sendSccpMessage(SCCPRegisterAvailableLines())
-        self.log("sending time date request message")
+        log.info("sending time date request message")
         self.client.sendSccpMessage(SCCPTimeDateReq())
 
         
     def onDefineTimeDate(self,message):
-        self.log('define time and date')
+        log.info('define time and date')
         self.dateTimePicker.setDateTime(message.day,message.month,message.year,message.hour,message.minute,message.seconds)
     
     def onSetSpeakerMode(self,message):
-        self.log('set speaker mode '+`message.mode`)
+        log.info('set speaker mode '+`message.mode`)
 
     def onCallState(self,message):
-        self.log('call state line : ' + `message.line` + ' for callId '+ `message.callId` + ' is ' + SCCPCallState.sccp_channelstates[message.callState])
+        log.info('call state line : ' + `message.line` + ' for callId '+ `message.callId` + ' is ' + SCCPCallState.sccp_channelstates[message.callState])
         self.currentLine = message.line
         self.currentCallId=message.callId
         self.callState=message.callState
@@ -137,11 +141,11 @@ class SCCPPhone():
             callHandler.handleCall(message.line,message.callId,message.callState)
         
     def onLineStat(self,message):
-        self.log('line stat ' + `message.line` + ' : ' + `message.dirNumber`)
+        log.info('line stat ' + `message.line` + ' : ' + `message.dirNumber`)
         self.displayHandler.displayLineInfo(message.line,message.dirNumber)
 
     def onStartTone(self,message):
-        self.log('start tone : '+`message.tone` + ' timeout ' + `message.toneTimeout` + ' line ' + `message.line` + ' for callId '+ `message.callId`)
+        log.info('start tone : '+`message.tone` + ' timeout ' + `message.toneTimeout` + ' line ' + `message.line` + ' for callId '+ `message.callId`)
         if self.toneHandler is not None:
             self.toneHandler.handleTone(message.line,message.callId,message.tone)
 
@@ -153,10 +157,10 @@ class SCCPPhone():
         self.client.sendSccpMessage(SCCPOpenReceiveChannelAck(0, self.host, 40000, message.conferenceId))
 
     def onActivateCallPlane(self,message):
-        self.log('Activate call plane on line '+`message.line`)
+        log.info('Activate call plane on line '+`message.line`)
         
     def onDialPadButtonPushed(self,car):
-        self.log("dialed : " + car)
+        log.info("dialed : " + car)
         if (car == '#'):
             event = 15
         elif (car == '*'):
@@ -167,13 +171,13 @@ class SCCPPhone():
         self.client.sendSccpMessage(message)
         
     def dial(self,numberToDial):
-        self.log('dialing : '+numberToDial)
+        log.info('dialing : '+numberToDial)
         self.client.sendSccpMessage(SCCPSoftKeyEvent(SKINNY_LBL_NEWCALL))
         for digit in numberToDial:
             self.onDialPadButtonPushed(digit)
             
     def onSoftKey(self,event):
-        self.log('on soft key '+`event`)
+        log.info('on soft key '+`event`)
         if (event != SKINNY_LBL_NEWCALL):
             message = SCCPSoftKeyEvent(event,self.currentLine,self.currentCallId)
         else:
