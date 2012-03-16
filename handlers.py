@@ -3,6 +3,7 @@ from threading import Event
 from generators import *
 from util import *
 from collections import defaultdict
+from itertools import repeat
 
 INSIDE_DIAL_TONE = 0x21
 INTER_CALL_TIME = 3
@@ -11,30 +12,25 @@ SLEEP_TIME = 1
 import logging
 log = logging.getLogger(__name__)
 
-def idle_user_factory(action_cb, params_generators, id):
-    generator = iter(lambda: 'sleep', None)
-    actor = GeneratorActor(action_cb, generator, params_generators, id)
-    return actor
+USER_GENERATORS = {
+    'idle': (iter, [lambda: weighted_choice([('sleep', 0.8), ('dnd', 0.2)]), None]),
+    'random': (general_generator, [])
+    }
 
-def random_user_factory(action_cb, params_generators, id):
-    generator = general_generator()
-    actor = GeneratorActor(action_cb, generator, params_generators, id)
-    return actor
+CALL_ACTIONS = {
+    'autoanswer': ['answer'],
+    'autotransfer': ['answer', 'dial', 'transfer'],
+    'aggressive': ['dial', 'answer']
+    }
 
-def autoanswer_call_factory(action_cb, params_generators, line, id):
-    return CallHandler(action_cb, params_generators,
-                       ['answer'],
-                       line, id)
+def create_user_generator(generator_name):
+    generator_func, args = USER_GENERATORS[generator_name]
+    print generator_func, args
+    generator = generator_func(*args)
+    return generator
 
-def autotransfer_call_factory(action_cb, params_generators, line, id):
-    return CallHandler(action_cb, params_generators,
-                       ['answer', 'ringout', 'transfer'],
-                       line, id)
-
-def aggressive_call_factory(action_cb, params_generators, line, id):
-    return CallHandler(action_cb, params_generators,
-                       ['ringout', 'answer'],
-                       line, id)
+def get_call_actions(actions_name):
+    return CALL_ACTIONS[actions_name]
 
 
 class GeneratorActor:
@@ -105,7 +101,7 @@ class CallHandler:
         self.line = line
         self.id = id
         self.actions_to_do = actions
-        self.ringout_counter = 0
+        self.dial_counter = 0
         self.transfer_counter = 0
         self.lines_calls[line].append(id)
         self.got_tone = False
@@ -146,17 +142,17 @@ class CallHandler:
         log.info(self.log('actions: %s' % actions))
         action = self.find_action(self.actions_to_do, actions)
 
-        if action == 'ringout':
-            if self.ringout_counter >= 1:
+        if action == 'dial':
+            if self.dial_counter >= 1:
                 return
-            self.ringout_counter += 1
+            self.dial_counter += 1
 
         if action == 'transfer':
             if self.transfer_counter >= 1 or len(CallHandler.lines_calls) < 2:
                 return
             self.transfer_counter += 1
 
-        if self.ringout_counter > 50:
+        if self.dial_counter > 50:
             print 'OVERFLOW========================================='
             import sys; sys.exit(1)
 

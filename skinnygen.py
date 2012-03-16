@@ -39,16 +39,21 @@ log = logging.getLogger(__name__)
 
 SKS_ONHOOK, SKS_CONNECTED, SKS_ONHOLD, \
 SKS_RINGIN, SKS_OFFHOOK, SKS_CONNTRANS, SKS_DIGOFF, \
-SKS_CONNCONF, SKS_RINGOUT, SKS_OFFHOOKFEAT = range(10)
+SKS_CONNCONF, SKS_DIAL, SKS_OFFHOOKFEAT = range(10)
 
 
+MESSAGE_DND_ON = 'DND ON'
+MESSAGE_DND_OFF = 'DND OFF'
 
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 2000
 
-DEFAULT_USER_FACTORY = handlers.random_user_factory
-DEFAULT_CALL_FACTORY = handlers.aggressive_call_factory
+DEFAULT_USER_FACTORY = 'random'
+DEFAULT_CALL_FACTORY = 'aggressive'
 
+RINGER_TYPE_OFF = 0x01
+RINGER_TYPE_INSIDE = 0x02
+RINGER_TYPE_FLASH_ONLY = 0x05
 
 DEFAULT_BIND_ADDRESS=('', 0)
 
@@ -56,7 +61,7 @@ KEYSETS_NAMES = dict(enumerate(
         [
             'onhook', 'connected', 'onhold',
             'ringin', 'offhook', 'conntrans', 'digoff',
-            'connconf', 'ringout', 'offhookfeat'
+            'connconf', 'dial', 'offhookfeat'
             ]))
 
 action_to_softkey = dict([(a, sk) for sk, a in  enumerate(
@@ -66,7 +71,7 @@ action_to_softkey = dict([(a, sk) for sk, a in  enumerate(
          'backspace', 'endcall', 'resume', 'answer'])])
 
 KEYSETS_ACTIONS = {
-    SKS_DIGOFF: ['ringout'],
+    SKS_DIGOFF: ['dial'],
     SKS_RINGIN: ['answer'],
     SKS_ONHOLD: ['transfer'],
     SKS_CONNTRANS: ['transfer'],
@@ -124,21 +129,11 @@ class GeneratorApp():
 
         self.user_factory = user_factory
         self.call_factory = call_factory
+
+        self.reported_dnd = False
         
         self.createPhone()
 
-    def gen_params(self, action):
-        if action == 'number':
-            return ['802'] # [random.choice(self.numbers)]
-        elif action in ['offhook', 'onhook']:
-            return []
-        elif action == 'button':
-            return [random.choice(BUTTONS)]
-        elif action == 'wait':
-            return [randwait(MIN_WAIT, MAX_WAIT)]
-        else:
-            raise Exception('unknown action')
- 
     def createPhone(self):
         host = self.bindAddress[0]
         self.sccpPhone = sccpPhone = SCCPPhone(host, self.device)
@@ -150,6 +145,10 @@ class GeneratorApp():
         sccpPhone.setDisplayHandler(self)
         sccpPhone.setDateTimePicker(self)        
         sccpPhone.addCallHandler(self)
+
+        sccpPhone.setDisplayPromptStatusHandler(self)
+        sccpPhone.setSetRingerHandler(self)
+
         sccpPhone.createClient()
 
     def handleSoftKeys(self, line, callid, softKeySet, softKeyMap):
@@ -181,6 +180,37 @@ class GeneratorApp():
 
         self.manager.maybe_create_call('outgoing', line, callid)
 
+    def onSetRinger(self, ringerType, ringerMode, line, callid):
+        log.info('SET RINGER %s' % [ringerType, ringerMode, line, callid])
+        try:
+            self.validateRinger(ringerType, ringerMode)
+        except AssertionError:
+            reactor.stop()
+
+
+    def validateRinger(self, ringerType, ringerMode):
+        placed_dnd = self.manager.placed_dnd
+        valid = ringerType == RINGER_TYPE_INSIDE and not (placed_dnd or self.reported_dnd) \
+            or ringerType == RINGER_TYPE_FLASH_ONLY and placed_dnd and self.reported_dnd \
+            or ringerType == RINGER_TYPE_OFF
+        if not valid:
+            log.critical('DND CHECK FAIL - ringer = %d, placed dnd = %s, reported_dnd = %s' % (ringerType, placed_dnd, self.reported_dnd))
+        else:
+            log.info('DND CHECK OK - ringer = %d, placed dnd = %s, reported_dnd = %s' % (ringerType, placed_dnd, self.reported_dnd))
+        #assert valid
+
+    def handleDND(self, message):
+        if message == MESSAGE_DND_ON:
+            self.reported_dnd = True
+        if message == MESSAGE_DND_OFF:
+            self.reported_dnd = False
+
+    def onDisplayPromptStatus(self, displayMessage, line, callid):
+        log.info('DISPLAY PROMPT %s' % [displayMessage, line, callid])
+        self.handleDND(displayMessage)
+        pass
+
+
     def handleTone(self,line,callid, tone):
         if tone == 0x21:
             self.manager.on_dialtone(line, callid, 'inside')
@@ -204,7 +234,7 @@ class GeneratorApp():
     def sendMessage(self, message):
         self.sccpPhone.client.sendSccpMessage(message)
         log.info('sending sccp message %s' % message)
-        yield wait(0.001)
+        yield wait(0.01)
 
     def displayLineInfo(self,line,dirNumber):
         #print `line`+' : ' + `dirNumber`
@@ -259,12 +289,6 @@ def parse_factory(factory_str):
     factory = getattr(handlers, factory_func_str)
     return factory
 
-def parse_user_factory(factory_str):
-    return parse_factory('%s_user' % factory_str)
-
-def parse_call_factory(factory_str):
-    return parse_factory('%s_call' % factory_str)
-
 def parse_bind_address(address_str):
     address_parts = address_str.split(':')
     address = address_parts if len(address_parts) == 2 else [address_parts[0], 0]
@@ -275,8 +299,8 @@ def parse_bind_address(address_str):
 @arg('self_line', help='device line (e.g. 472)')
 @arg('--host', default=SERVER_HOST, help='asterisk host')
 @arg('--port', default=SERVER_PORT, help='asterisk port')
-@arg('--user_handler', type=parse_user_factory, default=DEFAULT_USER_FACTORY, help='custom user behaviour handler')
-@arg('--call_handler', type=parse_call_factory, default=DEFAULT_CALL_FACTORY, help='custom call behaviour handler')
+@arg('--user_handler', default=DEFAULT_USER_FACTORY, help='custom user behaviour handler')
+@arg('--call_handler', default=DEFAULT_CALL_FACTORY, help='custom call behaviour handler')
 @arg('--numbers', type=parse_numbers, default=[], help='comma separated numbers to dial  (e.g. 333,221)')
 @arg('--numbers_file', type=parse_lines_safe, default=[], help='file containing comma separated numbers to dial')
 @arg('--bind_address', type=parse_bind_address, default=DEFAULT_BIND_ADDRESS, help='source address to bind to')

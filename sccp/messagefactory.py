@@ -21,6 +21,9 @@ from sccp.sccpselectsoftkeys import SCCPSelectSoftKeys
 from sccp.sccpopenreceivechannelack import SCCPOpenReceiveChannelAck
 from sccp.sccpopenreceivechannel import SCCPOpenReceiveChannel
 
+from sccp.sccpdisplaypromptstatus import SCCPDisplayPromptStatus
+from sccp.sccpsetringer import SCCPSetRinger
+
 
 class MessageFactory():
     '''
@@ -32,6 +35,8 @@ class MessageFactory():
                 SCCPMessageType.CapabilitiesReqMessage: SCCPCapabilitiesReq,
                 SCCPMessageType.KeepAliveAckMessage: SCCPKeepAliveAck,
                 SCCPMessageType.OpenReceiveChannel: SCCPOpenReceiveChannel,
+                SCCPMessageType.DisplayPromptStatusMessage: SCCPDisplayPromptStatus,
+                SCCPMessageType.SetRingerMessage: SCCPSetRinger,
                 SCCPMessageType.OpenReceiveChannelAck: SCCPOpenReceiveChannelAck,
                 SCCPMessageType.DefineTimeDate: SCCPDefineTimeDate,
                 SCCPMessageType.SetSpeakerModeMessage: SCCPSetSpeakerMode,

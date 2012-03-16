@@ -6,7 +6,7 @@ out_choices = {
     'entered_number':
         [(('end', None), 0.1),
          (('dial', 'connected'), 0.6),
-         (('wait_for_ringout', 'connected'), 0.3)]
+         (('wait_for_dial', 'connected'), 0.3)]
     }
 
 in_choices = {

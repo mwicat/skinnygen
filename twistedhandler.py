@@ -4,6 +4,8 @@ from generators import *
 from const import *
 import util
 
+import handlers
+
 from sccp.sccpkeypadbutton import SCCPKeyPadButton
 
 from sccp.sccpsoftkeyevent import SCCPSoftKeyEvent
@@ -19,8 +21,9 @@ actions_to_softkeys = {
                            'transfer' :SKINNY_LBL_TRANSFER,
                            'endcall' : SKINNY_LBL_ENDCALL,
                            'answer' : SKINNY_LBL_ANSWER,
-                           'ringout' : SKINNY_LBL_RINGOUT,
                            'dial' : SKINNY_LBL_DIAL,
+                           'dial' : SKINNY_LBL_DIAL,
+                           'dnd' : SKINNY_LBL_DND,
                            }
 
 
@@ -29,7 +32,7 @@ def action_to_messages(action, params, line=0, callid=0):
     if action == 'number':
         number = params[0]
         print 'CHOSEN NUMBER:', number, type(number)
-        softkey = actions_to_softkeys['ringout']
+        softkey = actions_to_softkeys['dial']
         sk_event = SCCPSoftKeyEvent(softkey, line, callid)
         messages = [SCCPKeyPadButton(int(digit)) for digit in number] #+ [sk_event] * 20
     elif action in actions_to_softkeys:
@@ -52,6 +55,8 @@ class Manager:
         self.user_handler = None
         self.messages_handler = None
 
+        self.placed_dnd = False
+
     def execute_action(self, action, params, line=0, callid=0):
         messages = action_to_messages(action, params, line, callid)
         if self.messages_handler is not None:
@@ -63,6 +68,8 @@ class Manager:
 
     def on_user_action(self, id, action, params):
         log.info('[%s] user action: %s(%s)' % (id, action, params))
+        if action == 'dnd':
+            self.placed_dnd = not self.placed_dnd
         self.execute_action(action, params)
 
     def delete_call(self, id):
@@ -71,8 +78,11 @@ class Manager:
 
     def start(self):
         log.info('starting user %s' % self.user_id)
-        self.user_handler = self.user_factory(
-            self.on_user_action, self.params_generators, self.user_id)
+        generator = handlers.create_user_generator(self.user_factory)
+        self.user_handler = handlers.GeneratorActor(self.on_user_action,
+                                                    generator,
+                                                    self.params_generators,
+                                                    self.user_id)
         self.user_handler.start()
 
     def on_dialtone(self, line, callid, tone):
@@ -102,12 +112,12 @@ class Manager:
             else self.create_call(ctype, line, callid)
 
     def create_call(self, ctype, line, callid):
-        generator = (in_generator if ctype == 'ingoing' else out_generator)()
-        call_handler = self.call_factory(
-            self.on_call_action, self.params_generators,
-            line, callid)
-        call_handler.start()
+        actions = handlers.get_call_actions(self.call_factory)
+        call_handler = handlers.CallHandler(self.on_call_action,
+                                   self.params_generators,
+                                   actions, line, callid)
         self.call_handlers[callid] = call_handler
+        call_handler.start()
         return call_handler
 
 
@@ -123,12 +133,11 @@ def choose_number(numbers):
     number = random.choice(numbers)
     return number
 
+
 def create_params_generators(numbers):
     sleep_factory = lambda: [util.randfloat(0, 4)]
     incorrect_numbers_factory = lambda: [number_generator]
     correct_numbers_factory = lambda: [choose_number(numbers)]
-#    correct_numbers_factory = lambda: numbers
-
     params_generators = {'correct_number': correct_numbers_factory,
                          'incorrect_number': incorrect_numbers_factory,
                          'sleep': sleep_factory}
@@ -146,8 +155,6 @@ def test_calls():
     manager.on_dialtone(c1, 'inside')
     manager.on_actions(c1, ['dial', 'endcall'])
     manager.on_actions(c1, ['transfer', 'endcall'])
-    # manager.create_call('ingoing', 'call_adam')
-    # manager.create_call('ingoing', 'call_kamil')
 
 
 if __name__ == '__main__':

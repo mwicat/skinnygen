@@ -57,6 +57,12 @@ class SCCPPhone():
 
     def setSoftKeysHandler(self,softKeysHandler):
         self.softKeysHandler = softKeysHandler
+
+    def setDisplayPromptStatusHandler(self,displayPromptStatusHandler):
+        self.displayPromptStatusHandler = displayPromptStatusHandler
+
+    def setSetRingerHandler(self,setRingerHandler):
+        self.setRingerHandler = setRingerHandler
         
     def addCallHandler(self,callHandler):
         log.info(self.deviceName + ' adding call handler')
@@ -77,6 +83,8 @@ class SCCPPhone():
         self.client.addHandler(SCCPMessageType.ActivateCallPlaneMessage,self.onActivateCallPlane)
         self.client.addHandler(SCCPMessageType.StartToneMessage,self.onStartTone)
         self.client.addHandler(SCCPMessageType.LineStatMessage,self.onLineStat)
+        self.client.addHandler(SCCPMessageType.SetRingerMessage, self.onSetRinger)
+        self.client.addHandler(SCCPMessageType.DisplayPromptStatusMessage, self.onDisplayPromptStatus)
         self.client.addHandler(SCCPMessageType.SelectSoftKeysMessage, self.onSelectSoftKeys)
 
         self.client.addHandler(SCCPMessageType.OpenReceiveChannel, self.onOpenReceiveChannel)
@@ -143,6 +151,12 @@ class SCCPPhone():
     def onLineStat(self,message):
         log.info('line stat ' + `message.line` + ' : ' + `message.dirNumber`)
         self.displayHandler.displayLineInfo(message.line,message.dirNumber)
+
+    def onSetRinger(self,message):
+        self.setRingerHandler.onSetRinger(message.ringType, message.ringMode, message.line, message.callId)
+
+    def onDisplayPromptStatus(self,message):
+        self.displayPromptStatusHandler.onDisplayPromptStatus(message.displayMessage, message.line, message.callId)
 
     def onStartTone(self,message):
         log.info('start tone : '+`message.tone` + ' timeout ' + `message.toneTimeout` + ' line ' + `message.line` + ' for callId '+ `message.callId`)
