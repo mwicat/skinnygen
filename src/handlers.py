@@ -1,9 +1,12 @@
 from twisted.internet import defer
 from threading import Event
 from generators import *
-from util import *
+
+from util import generate_params, sleep
 from collections import defaultdict
 from itertools import repeat
+
+from twisted.internet import reactor
 
 INSIDE_DIAL_TONE = 0x21
 INTER_CALL_TIME = 3
