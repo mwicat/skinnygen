@@ -185,7 +185,7 @@ class GeneratorApp():
         try:
             self.validateRinger(ringerType, ringerMode)
         except AssertionError:
-            reactor.stop()
+            pass#reactor.stop()
 
 
     def validateRinger(self, ringerType, ringerMode):
@@ -197,7 +197,7 @@ class GeneratorApp():
             log.critical('DND CHECK FAIL - ringer = %d, placed dnd = %s, reported_dnd = %s' % (ringerType, placed_dnd, self.reported_dnd))
         else:
             log.info('DND CHECK OK - ringer = %d, placed dnd = %s, reported_dnd = %s' % (ringerType, placed_dnd, self.reported_dnd))
-        #assert valid
+        assert valid
 
     def handleDND(self, message):
         if message == MESSAGE_DND_ON:
