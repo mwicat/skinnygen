@@ -36,7 +36,7 @@ def get_call_actions(actions_name):
     return CALL_ACTIONS[actions_name]
 
 
-class GeneratorActor:
+class UserActor:
 
     def __init__(self, action_cb, action_generator, params_generators, id):
         self.action_generator = action_generator
@@ -78,10 +78,6 @@ class GeneratorActor:
     def run(self):
         self.running = True
         for action in self.action_generator:
-            # if action == 'newcall':
-            #     if self.did_call:
-            #         continue
-            #     self.did_call = True
             log.info(self.log('action %s' % action))
             params = generate_params(action, self.params_generators)
             if action == 'newcall' and self.last_action == 'newcall':

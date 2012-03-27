@@ -79,7 +79,7 @@ class Manager:
     def start(self):
         log.info('starting user %s' % self.user_id)
         generator = handlers.create_user_generator(self.user_factory)
-        self.user_handler = handlers.GeneratorActor(self.on_user_action,
+        self.user_handler = handlers.UserActor(self.on_user_action,
                                                     generator,
                                                     self.params_generators,
                                                     self.user_id)
@@ -142,19 +142,6 @@ def create_params_generators(numbers):
                          'incorrect_number': incorrect_numbers_factory,
                          'sleep': sleep_factory}
     return params_generators
-
-
-def test_calls():
-    numbers = ['133', '244', '343']
-    params_generators = create_params_generators(numbers)
-    manager = Manager('user_asia', params_generators)
-    manager.start()
-    line = 1
-    c1 = 'call_marek'
-    manager.create_call('outgoing', line, c1)
-    manager.on_dialtone(c1, 'inside')
-    manager.on_actions(c1, ['dial', 'endcall'])
-    manager.on_actions(c1, ['transfer', 'endcall'])
 
 
 if __name__ == '__main__':
