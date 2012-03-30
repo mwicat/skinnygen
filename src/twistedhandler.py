@@ -113,7 +113,7 @@ class Manager:
 
     def create_call(self, ctype, line, callid):
         actions = handlers.get_call_actions(self.call_factory)
-        call_handler = handlers.CallHandler(self.on_call_action,
+        call_handler = handlers.CallActor(self.on_call_action,
                                    self.params_generators,
                                    actions, line, callid)
         self.call_handlers[callid] = call_handler

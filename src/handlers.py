@@ -4,7 +4,7 @@ from generators import *
 
 from util import generate_params, sleep
 from collections import defaultdict
-from itertools import repeat
+from itertools import repeat, takewhile
 
 from twisted.internet import reactor
 
@@ -36,17 +36,17 @@ def get_call_actions(actions_name):
     return CALL_ACTIONS[actions_name]
 
 
-class UserActor:
+def find_first_common_element(actions_to_fire, actions):
+    for action in actions_to_fire:
+        if action in actions:
+            return action
+    return None
 
-    def __init__(self, action_cb, action_generator, params_generators, id):
-        self.action_generator = action_generator
-        self.params_generators = params_generators
-        self.action_cb = action_cb
-        self.id = id
-        self.did_call = False
+
+class Actor:
+
+    def __init__(self):
         self.running = False
-        self.delayed_call = None
-        self.last_action = None
 
     def start(self):
         reactor.callLater(0, self.run)
@@ -57,7 +57,29 @@ class UserActor:
             self.delayed_call.cancel()
 
     @defer.inlineCallbacks
-    def call_action(self, action, params):
+    def sleep(self, tm):
+        self.delayed_call = sleep(SLEEP_TIME)
+        yield self.delayed_call
+        self.delayed_call = None
+
+
+class UserActor(Actor):
+
+    def __init__(self, action_cb, action_generator, params_generators, id):
+        Actor.__init__(self)
+        self.action_generator = action_generator
+        self.params_generators = params_generators
+        self.action_cb = action_cb
+        self.id = id
+        self.did_call = False
+        self.delayed_call = None
+        self.last_action = None
+
+    def log(self, msg):
+        return 'user %s - %s' % (self.id, msg)
+
+    @defer.inlineCallbacks
+    def fire_action(self, action, params):
         log.info(self.log('last action %s action %s' % (self.last_action, action)))
         if action == 'sleep':
             yield self.sleep(SLEEP_TIME)
@@ -65,34 +87,30 @@ class UserActor:
         else:
             self.action_cb(self.id, action, params)
 
-    @defer.inlineCallbacks
-    def sleep(self, tm):
-        self.delayed_call = sleep(SLEEP_TIME)
-        yield self.delayed_call
-        self.delayed_call = None
-
-    def log(self, msg):
-        return 'user %s - %s' % (self.id, msg)
+    def maybe_override_action(self, action):
+        is_repeated_newcall = action == 'newcall' and self.last_action == 'newcall'
+        if is_repeated_newcall:
+            return 'sleep'
+        else:
+            return action
 
     @defer.inlineCallbacks
     def run(self):
         self.running = True
-        for action in self.action_generator:
+        for action in takewhile(lambda a: self.running, self.action_generator):
             log.info(self.log('action %s' % action))
+            action = self.maybe_override_action(action)
             params = generate_params(action, self.params_generators)
-            if action == 'newcall' and self.last_action == 'newcall':
-                action = 'sleep'
-            yield self.call_action(action, params)
+            yield self.fire_action(action, params)
             self.last_action = action
-            if not self.running:
-                break
 
 
-class CallHandler:
+class CallActor(Actor):
 
     lines_calls = defaultdict(list)
 
     def __init__(self, action_cb, params_generators, actions, line, id):
+        Actor.__init__(self)
         self.params_generators = params_generators
         self.action_cb = action_cb
         self.call_actor = None
@@ -105,32 +123,11 @@ class CallHandler:
         self.lines_calls[line].append(id)
         self.got_tone = False
 
-    def find_action(self, actions_to_fire, actions):
-        for action in actions_to_fire:
-            if action in actions:
-                return action
-        return None
-
-    def stop(self):
-        pass
-
-    def start(self):
-        pass
-
-    def delete(self):
-        if self.call_actor is not None:
-            self.call_actor.stop()
-
     def call_action(self, action, params):
-        #reactor.callFromThread(self.action_cb, params, self.line, self.id)
         self.action_cb(action, params, self.line, self.id)
 
     def log(self, msg):
         return 'call %s - %s' % (self.id, msg)
-
-    @defer.inlineCallbacks
-    def sleep(self, tm):
-        yield sleep(SLEEP_TIME)
 
     @defer.inlineCallbacks
     def on_actions(self, actions):
@@ -139,7 +136,7 @@ class CallHandler:
             return
 
         log.info(self.log('actions: %s' % actions))
-        action = self.find_action(self.actions_to_do, actions)
+        action = find_first_common_element(self.actions_to_do, actions)
 
         if action == 'dial':
             if self.dial_counter >= 1:
@@ -162,7 +159,7 @@ class CallHandler:
                 self.call_action('offhook', [])
             self.call_action(action, generate_params(action, self.params_generators))
             if action == 'number':
-                yield self.sleep()
+                yield sleep()
 
 
     def on_dialtone(self, tone):
@@ -176,4 +173,10 @@ class CallHandler:
         self.got_tone = True
         log.info(self.log('dialtone'))
         self.action_cb('number', generate_params('correct_number', self.params_generators), self.line, self.id)
+
+    @defer.inlineCallbacks
+    def run(self):
+        self.running = True
+        while self.running:
+            yield sleep(5)
 
