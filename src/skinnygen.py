@@ -212,7 +212,7 @@ class GeneratorApp():
 
 
     def handleTone(self,line,callid, tone):
-        if tone == 0x21:
+        if tone == SCCPStartTone.SCCP_TONE_INSIDE:
             self.manager.on_dialtone(line, callid, 'inside')
 
     def createTimer(self,intervalSecs,timerCallback):

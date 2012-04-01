@@ -7,8 +7,8 @@ import util
 import handlers
 
 from sccp.sccpkeypadbutton import SCCPKeyPadButton
-
 from sccp.sccpsoftkeyevent import SCCPSoftKeyEvent
+
 from gui.softkeys import *
 
 import logging

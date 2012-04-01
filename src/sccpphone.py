@@ -73,10 +73,15 @@ class SCCPPhone():
         self.client = SCCPClientFactory(
                         self.on_sccp_connect_success,
                         self.on_sccp_connect_fail)
+
         self.client.handleUnknownMessage(self.onUnknownMessage)
+
         self.client.addHandler(SCCPMessageType.RegisterAckMessage,self.onRegisteredAck)
-        self.client.addHandler(SCCPMessageType.CapabilitiesReqMessage,self.onCapabilitiesReq)
         self.client.addHandler(SCCPMessageType.KeepAliveAckMessage,self.onKeepAliveAck)
+
+        self.client.addHandler(SCCPMessageType.CapabilitiesReqMessage,self.onCapabilitiesReq)
+        self.client.addHandler(SCCPMessageType.OpenReceiveChannel, self.onOpenReceiveChannel)
+
         self.client.addHandler(SCCPMessageType.DefineTimeDate,self.onDefineTimeDate)
         self.client.addHandler(SCCPMessageType.SetSpeakerModeMessage,self.onSetSpeakerMode)
         self.client.addHandler(SCCPMessageType.CallStateMessage,self.onCallState)
@@ -87,7 +92,6 @@ class SCCPPhone():
         self.client.addHandler(SCCPMessageType.DisplayPromptStatusMessage, self.onDisplayPromptStatus)
         self.client.addHandler(SCCPMessageType.SelectSoftKeysMessage, self.onSelectSoftKeys)
 
-        self.client.addHandler(SCCPMessageType.OpenReceiveChannel, self.onOpenReceiveChannel)
         return self.client
 
     def on_sccp_connect_success(self):
