@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from matplotlib.backends.backend_wx import bind
 
 from twisted.internet.error import ReactorAlreadyInstalledError
 try:
@@ -55,7 +56,7 @@ RINGER_TYPE_OFF = 0x01
 RINGER_TYPE_INSIDE = 0x02
 RINGER_TYPE_FLASH_ONLY = 0x05
 
-DEFAULT_BIND_ADDRESS=('', 0)
+DEFAULT_BIND_ADDRESS=('127.0.0.1', 0)
 
 KEYSETS_NAMES = dict(enumerate(
         [

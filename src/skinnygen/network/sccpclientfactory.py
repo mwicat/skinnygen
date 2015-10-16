@@ -4,7 +4,7 @@ Created on Jun 14, 2011
 @author: lebleu1
 '''
 from twisted.internet.protocol import ClientFactory
-from network.sccpclientprotocol import SCCPClientProtocol
+from sccpclientprotocol import SCCPClientProtocol
 
 from datetime import datetime
 

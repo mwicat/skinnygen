@@ -4,6 +4,7 @@ Created on Jun 20, 2011
 @author: lebleu1
 '''
 from network.sccpclientfactory import SCCPClientFactory
+
 from sccp.sccpmessagetype import SCCPMessageType
 from sccp.sccpregister import SCCPRegister
 from sccp.sccpcapabilities import SCCPCapabilitiesRes
